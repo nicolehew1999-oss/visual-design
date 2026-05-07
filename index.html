@@ -63,8 +63,22 @@
   .empty-state{text-align:center;padding:80px 20px;color:var(--text2);}
   .empty-state svg{color:var(--border2);margin-bottom:16px;}
   .loading-state{text-align:center;padding:60px 20px;color:var(--text2);font-size:14px;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-  .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:8px;}
+  .rb-two-col{display:grid;grid-template-columns:1fr 300px;gap:28px;align-items:start;}
+  .rb-answers{display:flex;flex-direction:column;gap:20px;}
+  .rb-checklist{background:var(--surface2);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:8px;position:sticky;top:80px;}
+  .chk-progress-bar{background:var(--border);border-radius:4px;height:5px;overflow:hidden;margin-bottom:6px;}
+  .chk-progress-fill{height:100%;background:var(--success);border-radius:4px;transition:width 0.3s;}
+  .chk-list{display:flex;flex-direction:column;gap:6px;}
+  .chk-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:var(--surface);transition:all 0.15s;font-size:13.5px;color:var(--text);user-select:none;}
+  .chk-item:hover{border-color:var(--border2);background:var(--surface2);}
+  .chk-item.done{border-color:#9FE1CB;background:var(--success-bg);color:#0F6E56;}
+  .chk-box{width:20px;height:20px;border:1.5px solid var(--border2);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+  .chk-item.done .chk-box{background:var(--success);border-color:var(--success);}
+  .chk-item.done .chk-box svg{stroke:white;}
+  .progress-pill{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px 3px 4px;min-width:64px;font-size:11px;font-weight:500;color:var(--text2);}
+  .progress-pill-fill{height:6px;width:60px;background:var(--border);border-radius:3px;overflow:hidden;position:relative;}
+  .progress-pill-fill::after{content:'';position:absolute;top:0;left:0;height:100%;background:var(--success);border-radius:3px;width:inherit;transition:width 0.3s;}
+  @media(max-width:700px){.rb-two-col{grid-template-columns:1fr;} .rb-checklist{position:static;}}
   .hero{background:var(--surface);border-bottom:1px solid var(--border);padding:48px 40px 40px;max-width:800px;margin:0 auto;}
   .hero h1{font-family:'DM Serif Display',serif;font-size:36px;letter-spacing:-0.8px;line-height:1.15;margin-bottom:12px;}
   .hero p{color:var(--text2);font-size:15px;max-width:520px;}
@@ -719,7 +733,11 @@ function updateProgress() {
 document.querySelectorAll('input,textarea').forEach(el => el.addEventListener('input', updateProgress));
 
 // ── Google Sheets endpoint — paste your Apps Script URL here ──
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbz6Ht-ZBbS8v2jHYm8ZPtCXoIPV48dsesS-JNInsusRGoCqy9MB27UAwluAJlvI7kpi2w/exec';
+// ── localStorage submissions ──
+function getSubs() { try { return JSON.parse(localStorage.getItem('design_briefs') || '[]'); } catch(e){ return []; } }
+function saveSubs(arr) { localStorage.setItem('design_briefs', JSON.stringify(arr)); }
+function getChecks(id) { try { return JSON.parse(localStorage.getItem('checks_'+id) || '{}'); } catch(e){ return {}; } }
+function saveCheck(id, key, val) { const c=getChecks(id); c[key]=val; localStorage.setItem('checks_'+id, JSON.stringify(c)); }
 
 // ── Submit ──
 const LABELS = {project_name:'Project Name',requested_by:'Requested by',hard_nos:'Hard Nos',sample1_url:'Sample 1 URL',sample2_url:'Sample 2 URL','design-mood-val':'Design Mood','colour-direction-val':'Colour Direction','imagery-style-val':'Imagery Style'};
@@ -735,15 +753,14 @@ document.getElementById('brief-form').addEventListener('submit', async function(
   const ds = document.querySelector('.dim-size');
   if (!ds || !ds.value.trim()) missing.push('Dimensions');
   if (missing.length > 0) {
-    errEl.textContent = '⚠ Please complete: ' + missing.join(', ');
+    errEl.textContent = '\u26a0 Please complete: ' + missing.join(', ');
     errEl.style.display = 'block';
     errEl.scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
   const btn = document.getElementById('submit-btn');
-  btn.disabled = true; btn.textContent = 'Submitting…';
+  btn.disabled = true; btn.textContent = 'Submitting\u2026';
 
-  // Build data object
   const fd = new FormData(this);
   const data = {};
   fd.forEach((v,k) => { data[k] = data[k] ? data[k]+', '+v : v; });
@@ -751,30 +768,20 @@ document.getElementById('brief-form').addEventListener('submit', async function(
   data.design_mood = document.getElementById('design-mood-val').value;
   data.colour_direction = document.getElementById('colour-direction-val').value;
   data.imagery_style = document.getElementById('imagery-style-val').value;
-  const dims = [...document.querySelectorAll('.dim-size')].map((el,i) => { const f = document.querySelectorAll('.dim-format')[i].value; return el.value + (f?' — '+f:''); }).filter(Boolean);
+  const dims = [...document.querySelectorAll('.dim-size')].map((el,i) => { const f = document.querySelectorAll('.dim-format')[i].value; return el.value + (f?' \u2014 '+f:''); }).filter(Boolean);
   data.dimensions = dims.join(' | ');
-  data.submitted_at = new Date().toLocaleString('en-MY', {timeZone:'Asia/Kuala_Lumpur'});
+  data.submitted_at = new Date().toISOString();
+  data.id = Date.now().toString();
 
-  // Send to Google Sheets — use URLSearchParams (works with no-cors + Apps Script)
-  if (SHEET_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
-    try {
-      const params = new URLSearchParams();
-      Object.keys(data).forEach(k => params.append(k, data[k] || ''));
-      await fetch(SHEET_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: params
-      });
-    } catch(err) {
-      console.warn('Sheet submission failed:', err);
-    }
-  }
+  const subs = getSubs();
+  subs.push(data);
+  saveSubs(subs);
 
-  // Show success
   document.getElementById('brief-form').style.display = 'none';
   const success = document.getElementById('success-screen');
   success.style.display = 'flex';
-  document.getElementById('brief-summary').innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;"><div style="display:flex;justify-content:space-between;gap:16px;"><span style="color:var(--text2);">Project</span><strong>'+data.project_name+'</strong></div><div style="display:flex;justify-content:space-between;gap:16px;"><span style="color:var(--text2);">Requested by</span><span>'+data.requested_by+'</span></div><div style="display:flex;justify-content:space-between;gap:16px;"><span style="color:var(--text2);">Deliverable</span><span>'+data.deliverable_types+'</span></div><div style="display:flex;justify-content:space-between;gap:16px;"><span style="color:var(--text2);">Dimensions</span><span>'+data.dimensions+'</span></div><div style="display:flex;justify-content:space-between;gap:16px;"><span style="color:var(--text2);">Mood</span><span>'+data.design_mood+'</span></div><div style="border-top:1px solid var(--border);padding-top:10px;font-size:12px;color:var(--text3);">Submitted '+data.submitted_at+'</div></div>';
+  const when = new Date().toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'});
+  document.getElementById('brief-summary').innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;"><div style="display:flex;justify-content:space-between;gap:16px;"><span style="color:var(--text2);">Project</span><strong>'+data.project_name+'</strong></div><div style="display:flex;justify-content:space-between;gap:16px;"><span style="color:var(--text2);">Requested by</span><span>'+data.requested_by+'</span></div><div style="display:flex;justify-content:space-between;gap:16px;"><span style="color:var(--text2);">Deliverable</span><span>'+data.deliverable_types+'</span></div><div style="display:flex;justify-content:space-between;gap:16px;"><span style="color:var(--text2);">Dimensions</span><span>'+data.dimensions+'</span></div><div style="display:flex;justify-content:space-between;gap:16px;"><span style="color:var(--text2);">Mood</span><span>'+data.design_mood+'</span></div><div style="border-top:1px solid var(--border);padding-top:10px;font-size:12px;color:var(--text3);">Submitted '+when+'</div></div>';
   success.scrollIntoView({behavior:'smooth',block:'start'});
 });
 
@@ -787,94 +794,90 @@ function switchTab(tab, btn) {
   if (tab === 'responses') loadResponses();
 }
 
-// ── Load responses from Google Sheets via Apps Script ──
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbz6Ht-ZBbS8v2jHYm8ZPtCXoIPV48dsesS-JNInsusRGoCqy9MB27UAwluAJlvI7kpi2w/exec';
-
-let responsesLoaded = false;
-async function loadResponses() {
+// ── Responses: load from localStorage ──
+function loadResponses() {
+  const rows = getSubs().reverse();
   const container = document.getElementById('responses-container');
-  container.innerHTML = '<div class="loading-state"><span class="spinner"></span>Loading responses…</div>';
-  try {
-    const res = await fetch(SHEET_URL + '?action=get');
-    const json = await res.json();
-    renderResponses(json.data || []);
-  } catch(err) {
-    container.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p style="font-size:15px;font-weight:500;margin-bottom:8px;">Could not load responses</p><p style="font-size:13px;">Make sure the Apps Script is deployed correctly.</p></div>';
-  }
-}
+  document.getElementById('stat-total').textContent = rows.length;
+  const weekAgo = new Date(Date.now()-7*24*60*60*1000).toISOString();
+  document.getElementById('stat-week').textContent = rows.filter(r=>r.submitted_at>=weekAgo).length;
+  const dc={};
+  rows.forEach(r=>{if(r.deliverable_types)r.deliverable_types.split(',').forEach(x=>{x=x.trim();dc[x]=(dc[x]||0)+1;});});
+  const top=Object.entries(dc).sort((a,b)=>b[1]-a[1])[0];
+  if(top){document.getElementById('stat-top').textContent=top[0];document.getElementById('stat-top-sub').textContent=top[1]+' request'+(top[1]>1?'s':'');}
+  else{document.getElementById('stat-top').textContent='\u2014';}
 
-function renderResponses(rows) {
-  const container = document.getElementById('responses-container');
-  if (rows.length === 0) {
-    container.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p style="font-size:15px;font-weight:500;margin-bottom:8px;">No submissions yet</p><p style="font-size:13px;">Submissions will appear here once staff start filling in the form.</p></div>';
-    document.getElementById('stat-total').textContent = '0';
-    document.getElementById('stat-week').textContent = '0';
-    document.getElementById('stat-top').textContent = '—';
+  if(rows.length===0){
+    container.innerHTML='<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p style="font-size:15px;font-weight:500;margin:16px 0 8px;">No submissions yet</p><p style="font-size:13px;">Submissions will appear here once staff fill in the form.</p></div>';
     return;
   }
 
-  // Stats
-  document.getElementById('stat-total').textContent = rows.length;
-  const weekAgo = Date.now() - 7*24*60*60*1000;
-  const thisWeek = rows.filter(r => new Date(r[0]) >= weekAgo).length;
-  document.getElementById('stat-week').textContent = thisWeek;
-  const delivCounts = {};
-  rows.forEach(r => { const d = r[3]; if(d) d.split(',').forEach(x => { x=x.trim(); delivCounts[x]=(delivCounts[x]||0)+1; }); });
-  const topDeliv = Object.entries(delivCounts).sort((a,b)=>b[1]-a[1])[0];
-  if (topDeliv) { document.getElementById('stat-top').textContent = topDeliv[0]; document.getElementById('stat-top-sub').textContent = topDeliv[1] + ' request' + (topDeliv[1]>1?'s':''); }
-
-  // Cards
-  const sorted = [...rows].reverse(); // newest first
-  container.innerHTML = sorted.map((r, i) => {
-    const [submitted_at, project_name, requested_by, deliverable_types, design_mood, colour_direction, imagery_style, dimensions, headline, ads_headline, ads_copy, cta_primary, cta_url, cta_secondary, cta_secondary_url, disclaimers, sample1_url, sample1_notes, sample2_url, sample2_notes, sample3_url, hard_nos, additional_notes] = r;
-    const idx = sorted.length - i;
-    return `
-    <div class="response-card" id="rc-${i}">
+  container.innerHTML = rows.map((r,i) => {
+    const when = r.submitted_at ? new Date(r.submitted_at).toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'}) : '\u2014';
+    const checks = getChecks(r.id);
+    const checkItems = [
+      {key:'brief_reviewed', label:'Brief reviewed'},
+      {key:'copy_received', label:'Copy & content received from Nicole'},
+      {key:'design_started', label:'Design started'},
+      {key:'draft_shared', label:'First draft shared'},
+      {key:'feedback_received', label:'Feedback received'},
+      {key:'final_approved', label:'Final approved'},
+      {key:'files_delivered', label:'Files delivered'}
+    ];
+    const doneCount = checkItems.filter(c=>checks[c.key]).length;
+    const pct = Math.round(doneCount/checkItems.length*100);
+    const checkHtml = checkItems.map(c => `
+      <label class="chk-item ${checks[c.key]?'done':''}" onclick="toggleCheck('${r.id}','${c.key}',this)">
+        <div class="chk-box">${checks[c.key]?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>':''}</div>
+        <span>${c.label}</span>
+      </label>`).join('');
+    return `<div class="response-card" id="rc-${i}">
       <div class="response-card-header" onclick="toggleCard(${i})">
         <div class="rc-left">
-          <div class="rc-project">#${idx} — ${project_name || 'Untitled'}</div>
-          <div class="rc-meta">
-            <span>By ${requested_by || '—'}</span>
-            ${submitted_at ? '<span>· ' + submitted_at + '</span>' : ''}
-            ${design_mood ? '<span>· ' + design_mood + '</span>' : ''}
-          </div>
+          <div class="rc-project">#${rows.length-i} \u2014 ${r.project_name||'Untitled'}</div>
+          <div class="rc-meta"><span>By ${r.requested_by||'\u2014'}</span><span> \u00b7 ${when}</span>${r.design_mood?'<span> \u00b7 '+r.design_mood+'</span>':''}</div>
         </div>
         <div class="rc-right">
-          ${deliverable_types ? '<span class="deliverable-tag">' + deliverable_types.split(',')[0].trim() + '</span>' : ''}
+          ${r.deliverable_types?'<span class="deliverable-tag">'+r.deliverable_types.split(',')[0].trim()+'</span>':''}
+          <div class="progress-pill"><div class="progress-pill-fill" style="width:${pct}%"></div><span>${pct}%</span></div>
           <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
       </div>
       <div class="response-body">
-        <div class="rb-grid">
-          <div class="rb-section">
-            <div class="rb-title">Project</div>
-            <div class="rb-row"><div class="rb-key">Project name</div><div class="rb-val">${project_name||'—'}</div></div>
-            <div class="rb-row"><div class="rb-key">Requested by</div><div class="rb-val">${requested_by||'—'}</div></div>
-            <div class="rb-row"><div class="rb-key">Deliverable</div><div class="rb-val">${deliverable_types||'—'}</div></div>
-            <div class="rb-row"><div class="rb-key">Dimensions</div><div class="rb-val">${dimensions||'—'}</div></div>
+        <div class="rb-two-col">
+          <div class="rb-answers">
+            <div class="rb-section">
+              <div class="rb-title">Project</div>
+              <div class="rb-row"><div class="rb-key">Project name</div><div class="rb-val">${r.project_name||'\u2014'}</div></div>
+              <div class="rb-row"><div class="rb-key">Requested by</div><div class="rb-val">${r.requested_by||'\u2014'}</div></div>
+              <div class="rb-row"><div class="rb-key">Deliverable</div><div class="rb-val">${r.deliverable_types||'\u2014'}</div></div>
+              <div class="rb-row"><div class="rb-key">Dimensions</div><div class="rb-val">${r.dimensions||'\u2014'}</div></div>
+            </div>
+            <div class="rb-section">
+              <div class="rb-title">Visual Direction</div>
+              <div class="rb-row"><div class="rb-key">Design mood</div><div class="rb-val">${r.design_mood||'\u2014'}</div></div>
+              <div class="rb-row"><div class="rb-key">Colour direction</div><div class="rb-val">${r.colour_direction||'\u2014'}</div></div>
+              <div class="rb-row"><div class="rb-key">Imagery style</div><div class="rb-val">${r.imagery_style||'\u2014'}</div></div>
+            </div>
+            <div class="rb-section">
+              <div class="rb-title">Copy & Content</div>
+              <div class="rb-row"><div class="rb-key">Headline</div><div class="rb-val">${r.headline||'\u2014'}</div></div>
+              <div class="rb-row"><div class="rb-key">Ads copy</div><div class="rb-val">${r.ads_copy||'\u2014'}</div></div>
+              <div class="rb-row"><div class="rb-key">Primary CTA</div><div class="rb-val">${r.cta_primary||'\u2014'}${r.cta_url?' \u2192 <a href="'+r.cta_url+'" target="_blank">link</a>':''}</div></div>
+            </div>
+            <div class="rb-section">
+              <div class="rb-title">References</div>
+              ${r.sample1_url?'<div class="rb-row"><div class="rb-key">Sample 1</div><div class="rb-val"><a href="'+r.sample1_url+'" target="_blank">View</a>'+(r.sample1_notes?'<br><span style="color:var(--text2);font-size:12px;">'+r.sample1_notes+'</span>':'')+'</div></div>':''}
+              ${r.sample2_url?'<div class="rb-row"><div class="rb-key">Sample 2</div><div class="rb-val"><a href="'+r.sample2_url+'" target="_blank">View</a>'+(r.sample2_notes?'<br><span style="color:var(--text2);font-size:12px;">'+r.sample2_notes+'</span>':'')+'</div></div>':''}
+              <div class="rb-row"><div class="rb-key">Hard nos</div><div class="rb-val">${r.hard_nos||'\u2014'}</div></div>
+              ${r.additional_notes?'<div class="rb-row"><div class="rb-key">Notes</div><div class="rb-val">'+r.additional_notes+'</div></div>':''}
+            </div>
           </div>
-          <div class="rb-section">
-            <div class="rb-title">Visual Direction</div>
-            <div class="rb-row"><div class="rb-key">Design mood</div><div class="rb-val">${design_mood||'—'}</div></div>
-            <div class="rb-row"><div class="rb-key">Colour direction</div><div class="rb-val">${colour_direction||'—'}</div></div>
-            <div class="rb-row"><div class="rb-key">Imagery style</div><div class="rb-val">${imagery_style||'—'}</div></div>
-          </div>
-          <div class="rb-section">
-            <div class="rb-title">Copy & Content</div>
-            <div class="rb-row"><div class="rb-key">Headline</div><div class="rb-val">${headline||'—'}</div></div>
-            <div class="rb-row"><div class="rb-key">Ads headline</div><div class="rb-val">${ads_headline||'—'}</div></div>
-            <div class="rb-row"><div class="rb-key">Ads copy</div><div class="rb-val">${ads_copy||'—'}</div></div>
-            <div class="rb-row"><div class="rb-key">Primary CTA</div><div class="rb-val">${cta_primary||'—'}${cta_url?' → <a href="'+cta_url+'" target="_blank">'+cta_url+'</a>':''}</div></div>
-            ${cta_secondary ? '<div class="rb-row"><div class="rb-key">Secondary CTA</div><div class="rb-val">'+cta_secondary+(cta_secondary_url?' → <a href="'+cta_secondary_url+'" target="_blank">'+cta_secondary_url+'</a>':'')+'</div></div>' : ''}
-            ${disclaimers ? '<div class="rb-row"><div class="rb-key">Disclaimers</div><div class="rb-val">'+disclaimers+'</div></div>' : ''}
-          </div>
-          <div class="rb-section">
-            <div class="rb-title">References</div>
-            ${sample1_url ? '<div class="rb-row"><div class="rb-key">Sample 1</div><div class="rb-val"><a href="'+sample1_url+'" target="_blank">'+sample1_url+'</a>'+(sample1_notes?'<br><span style="color:var(--text2);font-size:12px;">'+sample1_notes+'</span>':'')+'</div></div>' : ''}
-            ${sample2_url ? '<div class="rb-row"><div class="rb-key">Sample 2</div><div class="rb-val"><a href="'+sample2_url+'" target="_blank">'+sample2_url+'</a>'+(sample2_notes?'<br><span style="color:var(--text2);font-size:12px;">'+sample2_notes+'</span>':'')+'</div></div>' : ''}
-            ${sample3_url ? '<div class="rb-row"><div class="rb-key">Sample 3</div><div class="rb-val"><a href="'+sample3_url+'" target="_blank">'+sample3_url+'</a>'+(sample2_notes?'<br><span style="color:var(--text2);font-size:12px;">'+sample2_notes+'</span>':'')+'</div></div>' : ''}
-            <div class="rb-row"><div class="rb-key">Hard nos</div><div class="rb-val">${hard_nos||'—'}</div></div>
-            ${additional_notes ? '<div class="rb-row"><div class="rb-key">Additional notes</div><div class="rb-val">'+additional_notes+'</div></div>' : ''}
+          <div class="rb-checklist">
+            <div class="rb-title">Designer checklist</div>
+            <div class="chk-progress-bar"><div class="chk-progress-fill" id="chk-prog-${r.id}" style="width:${pct}%"></div></div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">${doneCount} of ${checkItems.length} completed</div>
+            <div class="chk-list" id="chk-list-${r.id}">${checkHtml}</div>
           </div>
         </div>
       </div>
@@ -882,8 +885,24 @@ function renderResponses(rows) {
   }).join('');
 }
 
-function toggleCard(i) {
-  document.getElementById('rc-'+i).classList.toggle('open');
+function toggleCard(i) { document.getElementById('rc-'+i).classList.toggle('open'); }
+
+function toggleCheck(submissionId, key, labelEl) {
+  const checks = getChecks(submissionId);
+  const newVal = !checks[key];
+  saveCheck(submissionId, key, newVal);
+  labelEl.classList.toggle('done', newVal);
+  const box = labelEl.querySelector('.chk-box');
+  box.innerHTML = newVal ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>' : '';
+  // Update progress
+  const allChecks = getChecks(submissionId);
+  const total = 7;
+  const done = Object.values(allChecks).filter(Boolean).length;
+  const pct = Math.round(done/total*100);
+  const bar = document.getElementById('chk-prog-'+submissionId);
+  if(bar) bar.style.width = pct + '%';
+  const list = document.getElementById('chk-list-'+submissionId);
+  if(list) { const countEl = list.previousElementSibling; if(countEl) countEl.textContent = done + ' of ' + total + ' completed'; }
 }
 
 resetForm;

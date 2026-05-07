@@ -19,6 +19,52 @@
   .logo span{color:var(--accent);}
   .header-right{display:flex;align-items:center;gap:16px;font-size:13px;color:var(--text2);}
   .badge-req{background:var(--accent-bg);color:var(--accent-dark);font-size:12px;font-weight:500;padding:3px 10px;border-radius:20px;}
+
+  /* ── Tab nav ── */
+  .tab-nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;max-width:100%;padding:0 40px;}
+  .tab-btn{padding:14px 20px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;margin-bottom:-1px;}
+  .tab-btn:hover{color:var(--text);}
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .tab-pane{display:none;}
+  .tab-pane.active{display:block;}
+
+  /* ── Responses tab ── */
+  .responses-wrap{max-width:1100px;margin:0 auto;padding:32px 40px 80px;}
+  .responses-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+  .responses-header h2{font-family:'DM Serif Display',serif;font-size:26px;letter-spacing:-0.5px;}
+  .refresh-btn{display:flex;align-items:center;gap:8px;padding:9px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--text2);cursor:pointer;transition:all 0.15s;}
+  .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;}
+  .stat-label{font-size:12px;color:var(--text3);margin-bottom:4px;}
+  .stat-val{font-size:26px;font-weight:600;color:var(--text);}
+  .stat-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+  .response-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px;}
+  .response-card-header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:var(--surface2);cursor:pointer;gap:12px;}
+  .response-card-header:hover{background:#EDEAE5;}
+  .rc-left{display:flex;flex-direction:column;gap:3px;}
+  .rc-project{font-size:15px;font-weight:500;color:var(--text);}
+  .rc-meta{font-size:12.5px;color:var(--text2);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .rc-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .deliverable-tag{background:var(--accent-bg);color:var(--accent-dark);font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+  .mood-tag{background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:11px;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+  .chevron{transition:transform 0.2s;color:var(--text3);}
+  .response-card.open .chevron{transform:rotate(180deg);}
+  .response-body{display:none;padding:24px;border-top:1px solid var(--border);}
+  .response-card.open .response-body{display:block;}
+  .rb-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .rb-section{display:flex;flex-direction:column;gap:10px;}
+  .rb-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;}
+  .rb-row{display:flex;flex-direction:column;gap:2px;}
+  .rb-key{font-size:12px;color:var(--text3);}
+  .rb-val{font-size:13.5px;color:var(--text);word-break:break-word;}
+  .rb-val a{color:var(--accent);text-decoration:none;}
+  .rb-val a:hover{text-decoration:underline;}
+  .empty-state{text-align:center;padding:80px 20px;color:var(--text2);}
+  .empty-state svg{color:var(--border2);margin-bottom:16px;}
+  .loading-state{text-align:center;padding:60px 20px;color:var(--text2);font-size:14px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:8px;}
   .hero{background:var(--surface);border-bottom:1px solid var(--border);padding:48px 40px 40px;max-width:800px;margin:0 auto;}
   .hero h1{font-family:'DM Serif Display',serif;font-size:36px;letter-spacing:-0.8px;line-height:1.15;margin-bottom:12px;}
   .hero p{color:var(--text2);font-size:15px;max-width:520px;}
@@ -203,6 +249,18 @@
   </div>
 </header>
 
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('form',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    Submit Brief
+  </button>
+  <button class="tab-btn" onclick="switchTab('responses',this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    Responses
+  </button>
+</nav>
+
+<div class="tab-pane active" id="tab-form">
 <div class="hero">
   <h1>Visual Design Brief</h1>
   <p>Complete every section before briefing your designer. The more specific you are, the fewer rounds of revisions you'll need.</p>
@@ -500,8 +558,28 @@
   </div>
 
 </div>
+</div><!-- end tab-form -->
 
-<script>
+<!-- RESPONSES TAB -->
+<div class="tab-pane" id="tab-responses">
+  <div class="responses-wrap">
+    <div class="responses-header">
+      <h2>All Submissions</h2>
+      <button class="refresh-btn" onclick="loadResponses()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        Refresh
+      </button>
+    </div>
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card"><div class="stat-label">Total submissions</div><div class="stat-val" id="stat-total">—</div></div>
+      <div class="stat-card"><div class="stat-label">This week</div><div class="stat-val" id="stat-week">—</div></div>
+      <div class="stat-card"><div class="stat-label">Most requested</div><div class="stat-val" style="font-size:16px;" id="stat-top">—</div><div class="stat-sub" id="stat-top-sub"></div></div>
+    </div>
+    <div id="responses-container">
+      <div class="loading-state"><span class="spinner"></span>Loading responses…</div>
+    </div>
+  </div>
+</div>
 const PASS = 'nicole2025';
 
 // ── Checkboxes ──
@@ -700,7 +778,115 @@ document.getElementById('brief-form').addEventListener('submit', async function(
   success.scrollIntoView({behavior:'smooth',block:'start'});
 });
 
-function resetForm() {
+// ── Tab switching ──
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'responses') loadResponses();
+}
+
+// ── Load responses from Google Sheets via Apps Script ──
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbz6Ht-ZBbS8v2jHYm8ZPtCXoIPV48dsesS-JNInsusRGoCqy9MB27UAwluAJlvI7kpi2w/exec';
+
+let responsesLoaded = false;
+async function loadResponses() {
+  const container = document.getElementById('responses-container');
+  container.innerHTML = '<div class="loading-state"><span class="spinner"></span>Loading responses…</div>';
+  try {
+    const res = await fetch(SHEET_URL + '?action=get');
+    const json = await res.json();
+    renderResponses(json.data || []);
+  } catch(err) {
+    container.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p style="font-size:15px;font-weight:500;margin-bottom:8px;">Could not load responses</p><p style="font-size:13px;">Make sure the Apps Script is deployed correctly.</p></div>';
+  }
+}
+
+function renderResponses(rows) {
+  const container = document.getElementById('responses-container');
+  if (rows.length === 0) {
+    container.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p style="font-size:15px;font-weight:500;margin-bottom:8px;">No submissions yet</p><p style="font-size:13px;">Submissions will appear here once staff start filling in the form.</p></div>';
+    document.getElementById('stat-total').textContent = '0';
+    document.getElementById('stat-week').textContent = '0';
+    document.getElementById('stat-top').textContent = '—';
+    return;
+  }
+
+  // Stats
+  document.getElementById('stat-total').textContent = rows.length;
+  const weekAgo = Date.now() - 7*24*60*60*1000;
+  const thisWeek = rows.filter(r => new Date(r[0]) >= weekAgo).length;
+  document.getElementById('stat-week').textContent = thisWeek;
+  const delivCounts = {};
+  rows.forEach(r => { const d = r[3]; if(d) d.split(',').forEach(x => { x=x.trim(); delivCounts[x]=(delivCounts[x]||0)+1; }); });
+  const topDeliv = Object.entries(delivCounts).sort((a,b)=>b[1]-a[1])[0];
+  if (topDeliv) { document.getElementById('stat-top').textContent = topDeliv[0]; document.getElementById('stat-top-sub').textContent = topDeliv[1] + ' request' + (topDeliv[1]>1?'s':''); }
+
+  // Cards
+  const sorted = [...rows].reverse(); // newest first
+  container.innerHTML = sorted.map((r, i) => {
+    const [submitted_at, project_name, requested_by, deliverable_types, design_mood, colour_direction, imagery_style, dimensions, headline, ads_headline, ads_copy, cta_primary, cta_url, cta_secondary, cta_secondary_url, disclaimers, sample1_url, sample1_notes, sample2_url, sample2_notes, sample3_url, hard_nos, additional_notes] = r;
+    const idx = sorted.length - i;
+    return `
+    <div class="response-card" id="rc-${i}">
+      <div class="response-card-header" onclick="toggleCard(${i})">
+        <div class="rc-left">
+          <div class="rc-project">#${idx} — ${project_name || 'Untitled'}</div>
+          <div class="rc-meta">
+            <span>By ${requested_by || '—'}</span>
+            ${submitted_at ? '<span>· ' + submitted_at + '</span>' : ''}
+            ${design_mood ? '<span>· ' + design_mood + '</span>' : ''}
+          </div>
+        </div>
+        <div class="rc-right">
+          ${deliverable_types ? '<span class="deliverable-tag">' + deliverable_types.split(',')[0].trim() + '</span>' : ''}
+          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="response-body">
+        <div class="rb-grid">
+          <div class="rb-section">
+            <div class="rb-title">Project</div>
+            <div class="rb-row"><div class="rb-key">Project name</div><div class="rb-val">${project_name||'—'}</div></div>
+            <div class="rb-row"><div class="rb-key">Requested by</div><div class="rb-val">${requested_by||'—'}</div></div>
+            <div class="rb-row"><div class="rb-key">Deliverable</div><div class="rb-val">${deliverable_types||'—'}</div></div>
+            <div class="rb-row"><div class="rb-key">Dimensions</div><div class="rb-val">${dimensions||'—'}</div></div>
+          </div>
+          <div class="rb-section">
+            <div class="rb-title">Visual Direction</div>
+            <div class="rb-row"><div class="rb-key">Design mood</div><div class="rb-val">${design_mood||'—'}</div></div>
+            <div class="rb-row"><div class="rb-key">Colour direction</div><div class="rb-val">${colour_direction||'—'}</div></div>
+            <div class="rb-row"><div class="rb-key">Imagery style</div><div class="rb-val">${imagery_style||'—'}</div></div>
+          </div>
+          <div class="rb-section">
+            <div class="rb-title">Copy & Content</div>
+            <div class="rb-row"><div class="rb-key">Headline</div><div class="rb-val">${headline||'—'}</div></div>
+            <div class="rb-row"><div class="rb-key">Ads headline</div><div class="rb-val">${ads_headline||'—'}</div></div>
+            <div class="rb-row"><div class="rb-key">Ads copy</div><div class="rb-val">${ads_copy||'—'}</div></div>
+            <div class="rb-row"><div class="rb-key">Primary CTA</div><div class="rb-val">${cta_primary||'—'}${cta_url?' → <a href="'+cta_url+'" target="_blank">'+cta_url+'</a>':''}</div></div>
+            ${cta_secondary ? '<div class="rb-row"><div class="rb-key">Secondary CTA</div><div class="rb-val">'+cta_secondary+(cta_secondary_url?' → <a href="'+cta_secondary_url+'" target="_blank">'+cta_secondary_url+'</a>':'')+'</div></div>' : ''}
+            ${disclaimers ? '<div class="rb-row"><div class="rb-key">Disclaimers</div><div class="rb-val">'+disclaimers+'</div></div>' : ''}
+          </div>
+          <div class="rb-section">
+            <div class="rb-title">References</div>
+            ${sample1_url ? '<div class="rb-row"><div class="rb-key">Sample 1</div><div class="rb-val"><a href="'+sample1_url+'" target="_blank">'+sample1_url+'</a>'+(sample1_notes?'<br><span style="color:var(--text2);font-size:12px;">'+sample1_notes+'</span>':'')+'</div></div>' : ''}
+            ${sample2_url ? '<div class="rb-row"><div class="rb-key">Sample 2</div><div class="rb-val"><a href="'+sample2_url+'" target="_blank">'+sample2_url+'</a>'+(sample2_notes?'<br><span style="color:var(--text2);font-size:12px;">'+sample2_notes+'</span>':'')+'</div></div>' : ''}
+            ${sample3_url ? '<div class="rb-row"><div class="rb-key">Sample 3</div><div class="rb-val"><a href="'+sample3_url+'" target="_blank">'+sample3_url+'</a>'+(sample2_notes?'<br><span style="color:var(--text2);font-size:12px;">'+sample2_notes+'</span>':'')+'</div></div>' : ''}
+            <div class="rb-row"><div class="rb-key">Hard nos</div><div class="rb-val">${hard_nos||'—'}</div></div>
+            ${additional_notes ? '<div class="rb-row"><div class="rb-key">Additional notes</div><div class="rb-val">'+additional_notes+'</div></div>' : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(i) {
+  document.getElementById('rc-'+i).classList.toggle('open');
+}
+
+resetForm;
   const section = document.getElementById('copy-section');
   if (section.classList.contains('unlocked')) relockSection();
   document.getElementById('brief-form').reset();

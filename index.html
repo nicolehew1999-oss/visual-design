@@ -907,7 +907,7 @@ function toggleCheck(submissionId, key, labelEl) {
   if(list) { const countEl = list.previousElementSibling; if(countEl) countEl.textContent = done + ' of ' + total + ' completed'; }
 }
 
-resetForm;
+function resetForm() {
   const section = document.getElementById('copy-section');
   if (section.classList.contains('unlocked')) relockSection();
   document.getElementById('brief-form').reset();

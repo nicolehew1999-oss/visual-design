@@ -896,7 +896,7 @@ async function markComplete(id, cardIdx, event) {
 }
 
 async function updateStatus(id, status, badgeId) {
-  const st = STATUSES[status]||STATUSES.new;
+  const st = getSt(status);
   try {
     await fetch(SB_URL+'/rest/v1/design_brief_submissions?id=eq.'+id, {
       method:'PATCH', headers:{...SBH,'Prefer':'return=minimal'}, body:JSON.stringify({status})
@@ -1013,7 +1013,7 @@ async function moveCard(id, newStatus, event) {
     await fetch(SB_URL+'/rest/v1/design_brief_submissions?id=eq.'+id, {
       method:'PATCH', headers:{...SBH,'Prefer':'return=minimal'}, body:JSON.stringify({status:newStatus, completed_at: newStatus==='archived'?new Date().toISOString():null})
     });
-    const st = STATUSES[newStatus]||{label:newStatus};
+    const st = getSt(newStatus);
     showNotif('\uD83D\uDCE2 Moved to: '+st.label);
     loadStatusBoard();
     if (newStatus==='archived') { loadArchive(); }
@@ -1032,55 +1032,92 @@ async function trashCard(id, event) {
   } catch(err) { console.warn('Trash failed:',err); }
 }
 
-// MONTHLY TAB — auto-detects months from submitted_at
+// MONTHLY TAB — auto-detects month from submitted_at, shows folder per month
 let allBriefs = [];
 let activeMonth = '';
+
+function getMonthKey(r) {
+  if (!r.submitted_at) return 'Unknown';
+  const d = new Date(r.submitted_at);
+  // Format: "May 2026"
+  return d.toLocaleString('en-US', {timeZone:'Asia/Kuala_Lumpur', month:'short', year:'numeric'});
+}
+
 async function loadMonthly() {
   const c = document.getElementById('monthly-container');
   c.innerHTML = '<div class="loading-state"><span class="spinner"></span>Loading\u2026</div>';
   try {
     const res = await fetch(SB_URL+'/rest/v1/design_brief_submissions?order=submitted_at.desc', {headers:SBH});
     const rows = await res.json();
-    if (!Array.isArray(rows)) throw new Error();
+    if (!Array.isArray(rows)) throw new Error('Not array: '+JSON.stringify(rows).slice(0,100));
     allBriefs = rows;
-    // Auto-detect month from submitted_at if month_year is missing
+
+    // Always derive month from submitted_at (ignore stored month_year — may be inconsistent)
+    const monthMap = {};
     rows.forEach(r => {
-      if (!r.month_year && r.submitted_at) {
-        r.month_year = new Date(r.submitted_at).toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur',month:'short',year:'numeric'});
-      }
+      const mk = getMonthKey(r);
+      if (!monthMap[mk]) monthMap[mk] = [];
+      monthMap[mk].push(r);
     });
-    const monthSet = new Set(rows.map(r=>r.month_year||'Unknown').filter(m=>m!=='Unknown'));
-    const months = [...monthSet].sort((a,b)=>{
-      const da = new Date('1 '+a), db = new Date('1 '+b);
-      return db-da;
+
+    const months = Object.keys(monthMap).filter(m=>m!=='Unknown').sort((a,b)=>{
+      return new Date('1 '+b) - new Date('1 '+a);
     });
+    if (monthMap['Unknown']?.length) months.push('Unknown');
+
     document.getElementById('count-monthly').textContent = months.length;
     const tabsEl = document.getElementById('month-tabs');
-    if (months.length === 0) { tabsEl.innerHTML=''; c.innerHTML='<div class="empty-state"><p style="font-size:14px;">No submissions yet.</p></div>'; return; }
+
+    if (months.length === 0) {
+      tabsEl.innerHTML='';
+      c.innerHTML='<div class="empty-state"><p style="font-size:14px;">No submissions yet.</p></div>';
+      return;
+    }
     if (!activeMonth || !months.includes(activeMonth)) activeMonth = months[0];
-    tabsEl.innerHTML = months.map(m=>'<button class="month-tab'+(m===activeMonth?' active':'')+'" onclick="selectMonth(\''+m+'\',this)">'+m+' <span style="font-size:11px;opacity:.7;">('+rows.filter(r=>r.month_year===m).length+')</span></button>').join('');
-    renderMonthlyCards(activeMonth);
+
+    tabsEl.innerHTML = months.map(m =>
+      '<button class="month-tab'+(m===activeMonth?' active':'')+'" onclick="selectMonth(\''+m+'\',this)">'+
+      '\uD83D\uDCC1 '+m+' <span style="font-size:11px;opacity:.65;">('+monthMap[m].length+')</span></button>'
+    ).join('');
+
+    renderMonthlyCards(activeMonth, monthMap);
   } catch(err) { c.innerHTML='<div class="empty-state"><p>Could not load: '+err+'</p></div>'; }
 }
 
+let currentMonthMap = {};
 function selectMonth(month, btn) {
   activeMonth = month;
   document.querySelectorAll('.month-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderMonthlyCards(month);
+  renderMonthlyCards(month, currentMonthMap);
 }
 
-function renderMonthlyCards(month) {
-  const rows = allBriefs.filter(r=>(r.month_year||'Unknown')===month);
+function renderMonthlyCards(month, monthMap) {
+  if (monthMap) currentMonthMap = monthMap;
+  const map = currentMonthMap;
+  const rows = map[month] || allBriefs.filter(r=>getMonthKey(r)===month);
   const c = document.getElementById('monthly-container');
-  if (rows.length === 0) { c.innerHTML='<div class="empty-state"><p style="font-size:14px;">No briefs for '+month+'</p></div>'; return; }
-  c.innerHTML = rows.map((r,i) => {
+  if (!rows || rows.length === 0) {
+    c.innerHTML='<div class="empty-state"><p style="font-size:14px;">No briefs for '+month+'</p></div>';
+    return;
+  }
+
+  // Folder-style: show month header + summary stats + expandable cards
+  const total = rows.length;
+  const byStatus = {};
+  rows.forEach(r => { const s=r.status||'new'; byStatus[s]=(byStatus[s]||0)+1; });
+  const statusPills = Object.entries(byStatus).map(([s,n]) => {
+    const st = getSt(s);
+    return '<span style="background:'+st.bg+';color:'+st.color+';font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;">'+st.label+' '+n+'</span>';
+  }).join('');
+
+  const cardsHtml = rows.map((r,i) => {
     const when = r.submitted_at ? new Date(r.submitted_at).toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '\u2014';
     const st = getSt(r.status||'new');
-    const isUrgent = r.urgency==='🔥 Urgent'||r.urgency==='urgent';
-    return '<div class="response-card'+(isUrgent?' urgent-card':'')+'" id="mc-'+i+'">'
-      +'<div class="rc-header" onclick="toggleMonthCard('+i+')">'
-      +'<div class="rc-left"><div class="rc-project">'+(isUrgent?'🔥 ':'')+r.project_name+'</div>'
+    const isUrgent = r.urgency==='\uD83D\uDD25 Urgent'||r.urgency==='urgent';
+    return '<div class="response-card'+(isUrgent?' urgent-card':'')+'" id="mc-'+i+'" style="margin-bottom:8px;border-radius:10px;">'
+      +'<div class="rc-header" onclick="document.getElementById(\'mc-'+i+'\').classList.toggle(\'open\')">'
+      +'<div class="rc-left"><div class="rc-project">'+(isUrgent?'\uD83D\uDD25 ':'')+(r.project_name||'Untitled')+'</div>'
       +'<div class="rc-meta"><span>By '+(r.requested_by||'\u2014')+'</span><span>\u00b7 '+when+'</span></div></div>'
       +'<div class="rc-right">'
       +'<span class="status-badge" style="background:'+st.bg+';color:'+st.color+'">'+st.label+'</span>'
@@ -1088,8 +1125,10 @@ function renderMonthlyCards(month) {
       +'<svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div></div>'
       +'<div class="response-body">'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">'
-      +'<div><div class="rb-title" style="margin-bottom:6px;">Brief Details</div>'
-      +'<div class="rb-row"><div class="rb-key">Target audience</div><div class="rb-val">'+(r.target_audience||'\u2014')+'</div></div>'
+      +'<div><div class="rb-title" style="margin-bottom:6px;">Brief</div>'
+      +'<div class="rb-row"><div class="rb-key">Requested by</div><div class="rb-val">'+(r.requested_by||'\u2014')+'</div></div>'
+      +'<div class="rb-row"><div class="rb-key">Product type</div><div class="rb-val">'+(r.product_type||'\u2014')+'</div></div>'
+      +'<div class="rb-row"><div class="rb-key">Audience</div><div class="rb-val">'+(r.target_audience||'\u2014')+'</div></div>'
       +'<div class="rb-row"><div class="rb-key">Objective</div><div class="rb-val">'+(r.objective||'\u2014')+'</div></div>'
       +'<div class="rb-row"><div class="rb-key">Ads type</div><div class="rb-val">'+(r.ads_deliverable_type||'\u2014')+'</div></div>'
       +'<div class="rb-row"><div class="rb-key">Deliverable</div><div class="rb-val">'+(r.deliverable_types||'\u2014')+'</div></div>'
@@ -1097,12 +1136,27 @@ function renderMonthlyCards(month) {
       +'<div><div class="rb-title" style="margin-bottom:6px;">Visual</div>'
       +'<div class="rb-row"><div class="rb-key">Mood</div><div class="rb-val">'+(r.design_mood||'\u2014')+'</div></div>'
       +'<div class="rb-row"><div class="rb-key">Colours</div><div class="rb-val">'+(r.colour_direction||'\u2014')+'</div></div>'
+      +'<div class="rb-row"><div class="rb-key">Imagery</div><div class="rb-val">'+(r.imagery_style||'\u2014')+'</div></div>'
       +'<div class="rb-row"><div class="rb-key">Hard nos</div><div class="rb-val">'+(r.hard_nos||'\u2014')+'</div></div>'
-      +(r.sample1_url?'<div class="rb-row"><div class="rb-key">Sample 1</div><div class="rb-val"><a href="'+r.sample1_url+'" target="_blank">View</a></div></div>':'')
+      +(r.sample1_url?'<div class="rb-row"><div class="rb-key">Sample 1</div><div class="rb-val"><a href="'+r.sample1_url+'" target="_blank">View \u2197</a></div></div>':'')
+      +(r.sample2_url?'<div class="rb-row"><div class="rb-key">Sample 2</div><div class="rb-val"><a href="'+r.sample2_url+'" target="_blank">View \u2197</a></div></div>':'')
       +'</div></div></div></div>';
   }).join('');
+
+  c.innerHTML =
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:20px;">'
+    +'<div style="padding:16px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">'
+    +'<div style="display:flex;align-items:center;gap:10px;">'
+    +'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>'
+    +'<span style="font-family:\'DM Serif Display\',serif;font-size:17px;letter-spacing:-.2px;">'+month+'</span>'
+    +'<span style="font-size:13px;color:var(--text3);">\u2014 '+total+' brief'+(total!==1?'s':'')+'</span>'
+    +'</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'+statusPills+'</div>'
+    +'</div>'
+    +'<div style="padding:16px;">'+cardsHtml+'</div>'
+    +'</div>';
 }
-function toggleMonthCard(i) { document.getElementById('mc-'+i).classList.toggle('open'); }
+
 
 // ARCHIVE TAB
 async function loadArchive() {

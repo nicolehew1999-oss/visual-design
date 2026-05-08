@@ -244,11 +244,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.6;}
 .lock-btn{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--text3);background:var(--surface2);padding:5px 12px;border-radius:20px;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all .15s;}
 .lock-btn:hover{background:var(--purple4);color:var(--purple);}
 .unlocked-badge{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--green);background:var(--green2);padding:5px 12px;border-radius:20px;}
-#copy-section.locked{opacity:.7;}
-#copy-section.locked .section-header{background:#F7F6FF;}
-#copy-section.locked #copy-fields{pointer-events:none;user-select:none;}
-#copy-section.unlocked .section-header{background:#F0FDF4;}
-#copy-section.unlocked .snum{background:linear-gradient(135deg,var(--green),#059669);}
+
 #pw-prompt{display:none;background:#fff;border:2px solid var(--purple);border-radius:var(--radius-lg);padding:22px;margin:0 22px 22px;flex-direction:column;gap:12px;align-items:center;text-align:center;}
 #pw-prompt h3{font-family:'DM Serif Display',serif;font-size:17px;color:var(--text);}
 #pw-prompt p{font-size:13px;color:var(--text2);}
@@ -554,9 +550,26 @@ textarea{resize:vertical;min-height:72px;line-height:1.6;}
               </div>
               <div class="field">
                 <label>Month / Year <span class="req">★</span></label>
-                <select name="month_year_input" id="month-year-input">
-                  <option value="">Select month & year</option>
-                </select>
+                <div id="cal-picker" style="position:relative;">
+                  <input type="text" id="month-year-input" name="month_year_input" placeholder="Select date" readonly style="cursor:pointer;background:#fff;" onclick="toggleCalendar()" required>
+                  <div id="calendar-popup" style="display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:500;background:#fff;border:1.5px solid var(--border);border-radius:16px;box-shadow:0 8px 24px rgba(91,80,232,.15);padding:16px;min-width:280px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                      <button type="button" onclick="calNav(-1)" style="background:var(--purple4);border:none;width:30px;height:30px;border-radius:8px;cursor:pointer;color:var(--purple);font-size:16px;">&#8249;</button>
+                      <span id="cal-title" style="font-weight:700;font-size:14px;color:var(--text);"></span>
+                      <button type="button" onclick="calNav(1)" style="background:var(--purple4);border:none;width:30px;height:30px;border-radius:8px;cursor:pointer;color:var(--purple);font-size:16px;">&#8250;</button>
+                    </div>
+                    <div id="cal-days" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;margin-bottom:8px;">
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Sun</span>
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Mon</span>
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Tue</span>
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Wed</span>
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Thu</span>
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Fri</span>
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Sat</span>
+                    </div>
+                    <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;"></div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="field-row">
@@ -611,41 +624,15 @@ textarea{resize:vertical;min-height:72px;line-height:1.6;}
         <!-- 02 COPY & CONTENT -->
         <div class="section-card" id="copy-section">
           <div class="section-header">
-            <div class="snum muted" id="copy-snum">02</div>
+            <div class="snum" id="copy-snum">02</div>
             <div class="stitle">Copy & Content</div>
-            <button type="button" class="lock-btn" id="lock-btn" onclick="togglePasswordPrompt()">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Nicole Hew only
-            </button>
-          </div>
-          <div id="pw-prompt">
-            <div style="width:44px;height:44px;background:var(--purple4);border-radius:50%;display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
-            <h3>Nicole Hew access only</h3>
-            <p>Enter password to unlock.</p>
-            <div class="pw-row" id="pw-row">
-              <input type="password" id="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')doUnlock()">
-              <button type="button" class="eye-btn" onclick="toggleEye()"><svg id="eye-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-              <button type="button" class="pw-unlock-btn" onclick="doUnlock()">Unlock</button>
-            </div>
-            <span class="pw-err-msg" id="pw-err-msg">Incorrect password.</span>
-            <button type="button" onclick="closePrompt()" style="background:none;border:none;font-size:12px;color:var(--text3);cursor:pointer;margin-top:-4px;">Cancel</button>
           </div>
           <div class="section-body" id="copy-fields">
-            <div class="info-notice" id="copy-locked-notice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Managed by <strong>Nicole Hew</strong>. Click unlock above.</span></div>
-            <div id="copy-locked-placeholders">
-              <div class="field-row">
-                <div class="field"><label>Visual Headline</label><div class="locked-field"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Password required</div></div>
-                <div class="field"><label>Ads Headline</label><div class="locked-field"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Password required</div></div>
-              </div>
-            </div>
-            <div id="copy-real-fields" style="display:none;flex-direction:column;gap:16px;">
-              <div style="display:flex;align-items:center;gap:8px;background:var(--green2);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:#065F46;font-weight:600;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Unlocked — welcome, Nicole!</div>
-              <div class="field-row"><div class="field"><label>Visual Headline</label><input type="text" name="headline" placeholder="Aim ≤60 chars"></div><div class="field"><label>Ads Headline</label><input type="text" name="ads_headline" placeholder="Short headline"></div></div>
-              <div class="field"><label>Ads Copy</label><textarea name="ads_copy" rows="2" placeholder="Aim ≤100 chars"></textarea></div>
-              <div class="field-row"><div class="field"><label>Primary CTA</label><input type="text" name="cta_primary" placeholder="e.g. Shop Now"></div><div class="field"><label>Destination URL</label><input type="url" name="cta_url" placeholder="https://..."></div></div>
-              <div class="field-row"><div class="field"><label>Secondary CTA</label><input type="text" name="cta_secondary" placeholder="e.g. Learn More"></div><div class="field"><label>Secondary URL</label><input type="url" name="cta_secondary_url" placeholder="https://..."></div></div>
-              <div class="field"><label>Disclaimers / Hashtags</label><textarea name="disclaimers" rows="2" placeholder="T&amp;C apply | #RayaSale | @brandname"></textarea></div>
-              <div style="display:flex;justify-content:flex-end;"><button type="button" onclick="relockSection()" style="display:flex;align-items:center;gap:5px;padding:7px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text2);cursor:pointer;">Lock again</button></div>
-            </div>
+            <div class="field-row"><div class="field"><label>Visual Headline</label><input type="text" name="headline" placeholder="Aim ≤60 chars"></div><div class="field"><label>Ads Headline</label><input type="text" name="ads_headline" placeholder="Short headline"></div></div>
+            <div class="field"><label>Ads Copy</label><textarea name="ads_copy" rows="2" placeholder="Aim ≤100 chars"></textarea></div>
+            <div class="field-row"><div class="field"><label>Primary CTA</label><input type="text" name="cta_primary" placeholder="e.g. Shop Now"></div><div class="field"><label>Destination URL</label><input type="url" name="cta_url" placeholder="https://..."></div></div>
+            <div class="field-row"><div class="field"><label>Secondary CTA</label><input type="text" name="cta_secondary" placeholder="e.g. Learn More"></div><div class="field"><label>Secondary URL</label><input type="url" name="cta_secondary_url" placeholder="https://..."></div></div>
+            <div class="field"><label>Disclaimers / Hashtags</label><textarea name="disclaimers" rows="2" placeholder="T&C apply | #RayaSale | @brandname"></textarea></div>
           </div>
         </div>
 
@@ -989,19 +976,75 @@ function initRadio(groupId, hiddenId) {
 }
 // Pre-select Normal urgency
 document.getElementById('urgency-val').value = 'normal';
-// Month/Year dropdown — 2026 only
+// ── CALENDAR PICKER (2026 only) ──
+const CAL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const CAL_SHORT  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let calMonth = new Date().getMonth();
+let calYear  = 2026;
+let calSelected = null;
+
+function toggleCalendar() {
+  const popup = document.getElementById('calendar-popup');
+  const isOpen = popup.style.display === 'block';
+  if (isOpen) { popup.style.display = 'none'; return; }
+  renderCalendar();
+  popup.style.display = 'block';
+}
+function calNav(dir) {
+  calMonth += dir;
+  if (calMonth < 0)  { calMonth = 11; } // stay in 2026
+  if (calMonth > 11) { calMonth = 0;  }
+  renderCalendar();
+}
+function renderCalendar() {
+  document.getElementById('cal-title').textContent = CAL_MONTHS[calMonth] + ' ' + calYear;
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const grid = document.getElementById('cal-grid');
+  let html = '';
+  for (let i = 0; i < firstDay; i++) {
+    html += '<div></div>';
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = CAL_SHORT[calMonth] + ' ' + d + ', ' + calYear;
+    const isSelected = calSelected === dateStr;
+    const isToday = (calYear === new Date().getFullYear() && calMonth === new Date().getMonth() && d === new Date().getDate());
+    html += '<button type="button" onclick="pickDate(' + d + ')" style="'
+      + 'padding:6px 2px;border:none;border-radius:8px;cursor:pointer;font-family:DM Sans,sans-serif;font-size:12.5px;font-weight:' + (isSelected?'700':'500') + ';'
+      + 'background:' + (isSelected?'var(--purple)':'isToday'===String(isToday)?'var(--purple4)':'transparent') + ';'
+      + 'background:' + (isSelected?'var(--purple)':isToday?'var(--purple4)':'transparent') + ';'
+      + 'color:' + (isSelected?'#fff':isToday?'var(--purple)':'var(--text)') + ';'
+      + '">' + d + '</button>';
+  }
+  grid.innerHTML = html;
+}
+function pickDate(d) {
+  const dateStr = CAL_SHORT[calMonth] + ' ' + d + ', ' + calYear;
+  calSelected = dateStr;
+  document.getElementById('month-year-input').value = dateStr;
+  document.getElementById('calendar-popup').style.display = 'none';
+  updateProgress();
+}
+// Close calendar on outside click
+document.addEventListener('click', function(e) {
+  const picker = document.getElementById('cal-picker');
+  if (picker && !picker.contains(e.target)) {
+    const popup = document.getElementById('calendar-popup');
+    if (popup) popup.style.display = 'none';
+  }
+});
+// Init: set current date as default
 (function(){
-  const sel = document.getElementById('month-year-input');
-  if (!sel) return;
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const curMonth = new Date().getMonth();
-  months.forEach((m, i) => {
-    const opt = document.createElement('option');
-    opt.value = m + ' 2026';
-    opt.textContent = m + ' 2026';
-    if (i === curMonth) opt.selected = true;
-    sel.appendChild(opt);
-  });
+  const now = new Date();
+  if (now.getFullYear() === 2026) {
+    calMonth = now.getMonth();
+    const dateStr = CAL_SHORT[calMonth] + ' ' + now.getDate() + ', 2026';
+    calSelected = dateStr;
+    const inp = document.getElementById('month-year-input');
+    if (inp) inp.value = dateStr;
+  } else {
+    calMonth = 0; // Jan 2026
+  }
 })();
 initRadio('design-mood','design-mood-val');
 initRadio('colour-direction','colour-direction-val');
@@ -1837,7 +1880,7 @@ function resetForm() {
   const urgencyItems = document.querySelectorAll('#urgency-field .radio-item');
   if (urgencyItems[0]) urgencyItems[0].classList.add('selected');
   ['design-mood-val','colour-direction-val','imagery-style-val','product-type-val','ads-deliverable-val','company-val'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  const _rmy=document.getElementById('month-year-input'); if(_rmy){const _months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];_rmy.value=_months[new Date().getMonth()]+' 2026';}
+  calSelected=null; const _rmy=document.getElementById('month-year-input'); if(_rmy) _rmy.value='';
   document.getElementById('urgency-val').value = 'normal';
   document.getElementById('error-msg').style.display = 'none';
   document.getElementById('dim-list').innerHTML = '<div class="dim-row"><input type="text" placeholder="e.g. 1080 \u00d7 1080 px \u2014 PNG + PSD" class="dim-size"><input type="text" placeholder="Format" class="dim-format"><button type="button" class="dim-remove" onclick="removeDim(this)">\u00d7</button></div>';

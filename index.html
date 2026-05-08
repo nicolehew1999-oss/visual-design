@@ -573,6 +573,29 @@ textarea{resize:vertical;min-height:72px;line-height:1.6;}
                   </div>
                 </div>
               </div>
+              <div class="field">
+                <label>Due Date</label>
+                <div id="due-cal-picker" style="position:relative;">
+                  <input type="text" id="due-date-input" name="due_date" placeholder="Select due date" readonly style="cursor:pointer;background:#fff;" onclick="toggleDueCalendar()">
+                  <div id="due-calendar-popup" style="display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:500;background:#fff;border:1.5px solid var(--border);border-radius:16px;box-shadow:0 8px 24px rgba(91,80,232,.15);padding:16px;min-width:280px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                      <button type="button" onclick="dueCalNav(-1)" style="background:var(--purple4);border:none;width:30px;height:30px;border-radius:8px;cursor:pointer;color:var(--purple);font-size:16px;">&#8249;</button>
+                      <span id="due-cal-title" style="font-weight:700;font-size:14px;color:var(--text);"></span>
+                      <button type="button" onclick="dueCalNav(1)" style="background:var(--purple4);border:none;width:30px;height:30px;border-radius:8px;cursor:pointer;color:var(--purple);font-size:16px;">&#8250;</button>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;margin-bottom:8px;">
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Sun</span>
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Mon</span>
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Tue</span>
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Wed</span>
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Thu</span>
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Fri</span>
+                      <span style="color:var(--text3);font-weight:600;padding:4px;">Sat</span>
+                    </div>
+                    <div id="due-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;"></div>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="field-row">
               <div class="field">
@@ -1028,7 +1051,56 @@ function initRadio(groupId, hiddenId) {
 }
 // Pre-select Normal urgency
 document.getElementById('urgency-val').value = 'normal';
-// ── SAMPLE URL / UPLOAD TABS ──
+// ── DUE DATE CALENDAR ──
+let dueCalMonth = new Date().getMonth();
+let dueCalYear  = 2026;
+let dueCalSelected = null;
+
+function toggleDueCalendar() {
+  const popup = document.getElementById('due-calendar-popup');
+  const isOpen = popup.style.display === 'block';
+  if (isOpen) { popup.style.display = 'none'; return; }
+  renderDueCalendar();
+  popup.style.display = 'block';
+}
+function dueCalNav(dir) {
+  dueCalMonth += dir;
+  if (dueCalMonth < 0)  { dueCalMonth = 11; }
+  if (dueCalMonth > 11) { dueCalMonth = 0; }
+  renderDueCalendar();
+}
+function renderDueCalendar() {
+  document.getElementById('due-cal-title').textContent = CAL_MONTHS[dueCalMonth] + ' ' + dueCalYear;
+  const firstDay = new Date(dueCalYear, dueCalMonth, 1).getDay();
+  const daysInMonth = new Date(dueCalYear, dueCalMonth + 1, 0).getDate();
+  const grid = document.getElementById('due-cal-grid');
+  let html = '';
+  for (let i = 0; i < firstDay; i++) html += '<div></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = CAL_SHORT[dueCalMonth] + ' ' + d + ', ' + dueCalYear;
+    const isSelected = dueCalSelected === dateStr;
+    html += '<button type="button" onclick="pickDueDate('+d+')" style="'
+      +'padding:6px 2px;border:none;border-radius:8px;cursor:pointer;font-family:DM Sans,sans-serif;font-size:12.5px;font-weight:'+(isSelected?'700':'500')+';'
+      +'background:'+(isSelected?'var(--orange)':'transparent')+';'
+      +'color:'+(isSelected?'#fff':'var(--text)')+';'
+      +'">' + d + '</button>';
+  }
+  grid.innerHTML = html;
+}
+function pickDueDate(d) {
+  const dateStr = CAL_SHORT[dueCalMonth] + ' ' + d + ', ' + dueCalYear;
+  dueCalSelected = dateStr;
+  document.getElementById('due-date-input').value = dateStr;
+  document.getElementById('due-calendar-popup').style.display = 'none';
+  updateProgress();
+}
+document.addEventListener('click', function(e) {
+  const picker = document.getElementById('due-cal-picker');
+  if (picker && !picker.contains(e.target)) {
+    const popup = document.getElementById('due-calendar-popup');
+    if (popup) popup.style.display = 'none';
+  }
+});
 function switchSampleTab(n, mode, btn) {
   // Toggle tab buttons
   const tabs = document.querySelectorAll('#stabs-'+n+' .stab');
@@ -1297,6 +1369,7 @@ document.getElementById('brief-form').addEventListener('submit', async function(
     target_audience: document.querySelector('[name="target_audience"]')?.value||'',
     objective: document.querySelector('[name="objective"]')?.value||'',
     company:       document.getElementById('company-val').value,
+    due_date:      document.getElementById('due-date-input')?.value||'',
     product_type: document.getElementById('product-type-val').value,
     ads_deliverable_type: document.getElementById('ads-deliverable-val').value,
     urgency: isUrgent,
@@ -1333,7 +1406,7 @@ document.getElementById('brief-form').addEventListener('submit', async function(
   const when = now.toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'});
   document.getElementById('brief-summary').innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">'
     +'<div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text2);">Project</span><strong>'+payload.project_name+'</strong></div>'
-    +'<div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text2);">Company</span><span>'+payload.company+'</span></div>'+'<div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text2);">Requested by</span><span>'+payload.requested_by+'</span></div>'
+    +'<div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text2);">Company</span><span>'+payload.company+'</span></div>'+(payload.due_date?'<div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text2);">Due Date</span><span style="color:var(--red);font-weight:600;">'+payload.due_date+'</span></div>':'')+'<div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text2);">Requested by</span><span>'+payload.requested_by+'</span></div>'
     +'<div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text2);">Ads type</span><span>'+payload.ads_deliverable_type+'</span></div>'
     +'<div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:var(--text2);">Month</span><span>'+monthYear+'</span></div>'
     +'<div style="border-top:1px solid var(--border);padding-top:8px;font-size:12px;color:var(--text3);">'+when+'</div></div>';
@@ -1380,7 +1453,7 @@ function renderResponses(rows) {
     return '<div class="response-card'+(isUrgent?' urgent-card':'')+'" id="rc-'+i+'">'
       +'<div class="rc-header" onclick="toggleCard('+i+')">'
       +'<div class="rc-left"><div class="rc-project">'+(isUrgent?'🔥 ':'')+'#'+(rows.length-i)+' \u2014 '+(r.project_name||'Untitled')+'</div>'
-      +'<div class="rc-meta">'+(r.company?'<span style="background:var(--purple4);color:var(--purple);font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;">'+r.company+'</span>':'')+'<span>By '+(r.requested_by||'\u2014')+'</span><span>\u00b7 '+when+'</span>'+(r.product_type?'<span>\u00b7 '+r.product_type+'</span>':'')+'</div></div>'
+      +'<div class="rc-meta">'+(r.company?'<span style="background:var(--purple4);color:var(--purple);font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;">'+r.company+'</span>':'')+'<span>By '+(r.requested_by||'\u2014')+'</span><span>\u00b7 '+when+'</span>'+(r.due_date?'<span style="color:var(--red);font-weight:600;">Due: '+r.due_date+'</span>':'')+(r.product_type?'<span>\u00b7 '+r.product_type+'</span>':'')+'</div></div>'
       +'<div class="rc-right">'
       +'<button class="tick-btn" id="tick-'+r.id+'" data-id="'+r.id+'" data-idx="'+i+'" onclick="markComplete(this.dataset.id,+this.dataset.idx,event)" title="Mark complete \u2192 Archive"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Done</button>'
       +'<span class="status-badge" id="sbadge-'+r.id+'" style="background:'+st.bg+';color:'+st.color+'">'+st.label+'</span>'
@@ -1972,7 +2045,7 @@ function resetForm() {
   const urgencyItems = document.querySelectorAll('#urgency-field .radio-item');
   if (urgencyItems[0]) urgencyItems[0].classList.add('selected');
   ['design-mood-val','colour-direction-val','imagery-style-val','product-type-val','ads-deliverable-val','company-val'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  calSelected=null; const _rmy=document.getElementById('month-year-input'); if(_rmy) _rmy.value='';
+  calSelected=null; dueCalSelected=null; const _rmy=document.getElementById('month-year-input'); if(_rmy) _rmy.value=''; const _due=document.getElementById('due-date-input'); if(_due) _due.value='';
   document.getElementById('urgency-val').value = 'normal';
   document.getElementById('error-msg').style.display = 'none';
   document.getElementById('dim-list').innerHTML = '<div class="dim-row"><input type="text" placeholder="e.g. 1080 \u00d7 1080 px \u2014 PNG + PSD" class="dim-size"><input type="text" placeholder="Format" class="dim-format"><button type="button" class="dim-remove" onclick="removeDim(this)">\u00d7</button></div>';

@@ -989,25 +989,19 @@ function initRadio(groupId, hiddenId) {
 }
 // Pre-select Normal urgency
 document.getElementById('urgency-val').value = 'normal';
-// Auto-fill current month/year dropdown
+// Month/Year dropdown — 2026 only
 (function(){
   const sel = document.getElementById('month-year-input');
   if (!sel) return;
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const now = new Date();
-  const curYear = now.getFullYear();
-  const curMonth = now.getMonth();
-  // Show 2 years back and 2 years forward
-  for (let y = curYear - 2; y <= curYear + 2; y++) {
-    for (let m = 0; m < 12; m++) {
-      const val = months[m] + ' ' + y;
-      const opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = val;
-      if (y === curYear && m === curMonth) opt.selected = true;
-      sel.appendChild(opt);
-    }
-  }
+  const curMonth = new Date().getMonth();
+  months.forEach((m, i) => {
+    const opt = document.createElement('option');
+    opt.value = m + ' 2026';
+    opt.textContent = m + ' 2026';
+    if (i === curMonth) opt.selected = true;
+    sel.appendChild(opt);
+  });
 })();
 initRadio('design-mood','design-mood-val');
 initRadio('colour-direction','colour-direction-val');
@@ -1843,7 +1837,7 @@ function resetForm() {
   const urgencyItems = document.querySelectorAll('#urgency-field .radio-item');
   if (urgencyItems[0]) urgencyItems[0].classList.add('selected');
   ['design-mood-val','colour-direction-val','imagery-style-val','product-type-val','ads-deliverable-val','company-val'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  const _rmy=document.getElementById('month-year-input'); if(_rmy){const _n=new Date();const _months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];_rmy.value=_months[_n.getMonth()]+' '+_n.getFullYear();}
+  const _rmy=document.getElementById('month-year-input'); if(_rmy){const _months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];_rmy.value=_months[new Date().getMonth()]+' 2026';}
   document.getElementById('urgency-val').value = 'normal';
   document.getElementById('error-msg').style.display = 'none';
   document.getElementById('dim-list').innerHTML = '<div class="dim-row"><input type="text" placeholder="e.g. 1080 \u00d7 1080 px \u2014 PNG + PSD" class="dim-size"><input type="text" placeholder="Format" class="dim-format"><button type="button" class="dim-remove" onclick="removeDim(this)">\u00d7</button></div>';

@@ -1397,16 +1397,34 @@ document.getElementById('brief-form').addEventListener('submit', async function(
     sample2_url: document.querySelector('[name="sample2_url"]')?.value||'',
     sample2_notes: document.querySelector('[name="sample2_notes"]')?.value||'',
     sample3_url: document.querySelector('[name="sample3_url"]')?.value||'',
-    hard_nos: document.querySelector('[name="hard_nos"]')?.value||'',
     additional_notes: document.querySelector('[name="additional_notes"]')?.value||'',
     status: 'new',
     month_year: monthYear
   };
   try {
     const res = await fetch(SB_URL+'/rest/v1/design_brief_submissions', {method:'POST',headers:{...SBH,'Prefer':'return=minimal'},body:JSON.stringify(payload)});
-    if (!res.ok) console.warn('SB error:', res.status, await res.text());
-    else { lastCount++; showNotif('\u2705 Brief submitted: '+payload.project_name); sendEmailNotification(payload); }
-  } catch(err) { console.warn('Submit failed:',err); }
+    if (!res.ok) {
+      const errText = await res.text();
+      console.warn('SB error:', res.status, errText);
+      const errEl = document.getElementById('error-msg');
+      errEl.textContent = 'Submit failed: ' + res.status + ' ' + errText;
+      errEl.style.display = 'block';
+      document.getElementById('submit-btn').disabled = false;
+      document.getElementById('submit-btn').textContent = 'Submit Design Brief';
+      return;
+    }
+    lastCount++;
+    showNotif('\u2705 Brief submitted: '+payload.project_name);
+    sendEmailNotification(payload);
+  } catch(err) {
+    console.warn('Submit failed:',err);
+    const errEl = document.getElementById('error-msg');
+    errEl.textContent = 'Network error — check your connection and try again.';
+    errEl.style.display = 'block';
+    document.getElementById('submit-btn').disabled = false;
+    document.getElementById('submit-btn').textContent = 'Submit Design Brief';
+    return;
+  }
   document.getElementById('brief-form').style.display = 'none';
   document.getElementById('success-screen').style.display = 'flex';
   const when = now.toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'});
